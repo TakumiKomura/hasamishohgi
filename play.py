@@ -351,12 +351,13 @@ class Play:
 
     def _check_winner(self):
         """勝者を判定して結果を表示"""
-        winner = self.get_won_player()
-        if winner is not None:
+        winner_direction = self.get_won_player()
+        if winner_direction is not None:
             self.is_finished = True
-            self.board.show()
-            winner_str = self.player1.str_direction if winner == self.player1.direction else self.player2.str_direction
-            print(f"{winner_str} won!")
+            # 勝者のプレイヤーを特定
+            winning_player = self.player1 if winner_direction == self.player1.direction else self.player2
+            winner = "Q-Learning" if hasattr(winning_player, 'q_learning') else "Minimax"
+            print(f"Winner: {winner}")
             return True
         return False
 
@@ -380,7 +381,7 @@ class Play:
         if old_y != new_y and old_x != new_x:
             return False
 
-        # 移動経路上に他のコマがないか��認
+        # 移動経路上に他のコマがないか認
         if old_y == new_y:  # 水平方向の移動
             step = 1 if old_x < new_x else -1
             for col in range(old_x + step, new_x + step, step):
@@ -613,7 +614,7 @@ class Play:
                 return best_move, min_eval
         
         # 深さ3で探索を実行
-        best_move, _ = minimax(3, True, float('-inf'), float('inf'))
+        best_move, _ = minimax(1, True, float('-inf'), float('inf'))
         return best_move
 
     def evaluate_move(self, old_y, old_x, new_y, new_x, current_turn):
@@ -815,15 +816,18 @@ class Play:
 
     def train_minimax_vs_qlearning(self):
         """MinimaxとQ学習AIの対戦による学習"""
-        # Q学習プレイヤーを初期化（パラメータ調整）
-        q_learning_player = QLearningPlayer(Cell.UP, epsilon=0.3, alpha=0.2, gamma=0.99)
+        # 先手用と後手用のQ学習プレイヤーを別々に初期化
+        q_learning_first = QLearningPlayer(Cell.UP, epsilon=0.3, alpha=0.2, gamma=0.99)
+        q_learning_second = QLearningPlayer(Cell.DOWN, epsilon=0.3, alpha=0.2, gamma=0.99)
         
         # 初期の探索率を保存
-        initial_epsilon = q_learning_player.epsilon
+        initial_epsilon = q_learning_first.epsilon
         
         for episode in range(self.num_episodes):
             # エピソード数に応じて探索率を徐々に減少
-            q_learning_player.epsilon = initial_epsilon * (1 - episode / self.num_episodes)
+            current_epsilon = initial_epsilon * (1 - episode / self.num_episodes)
+            q_learning_first.epsilon = current_epsilon
+            q_learning_second.epsilon = current_epsilon
             
             print(f"Episode {episode + 1}/{self.num_episodes}")
             
@@ -831,14 +835,14 @@ class Play:
             if episode % 2 == 0:
                 # Q学習が先手
                 self.player1 = Player(Cell.UP, is_computer=True)
-                self.player1.q_learning = q_learning_player
+                self.player1.q_learning = q_learning_first
                 self.player2 = Player(Cell.DOWN, is_computer=True)
                 print("Q-Learning (UP) vs Minimax (DOWN)")
             else:
                 # Q学習が後手
                 self.player1 = Player(Cell.UP, is_computer=True)
                 self.player2 = Player(Cell.DOWN, is_computer=True)
-                self.player2.q_learning = q_learning_player
+                self.player2.q_learning = q_learning_second
                 print("Minimax (UP) vs Q-Learning (DOWN)")
             
             # ボードの初期化
@@ -869,9 +873,12 @@ class Play:
                     current_player.q_learning.learn(self.board, reward, is_done)
                 
                 # 勝利判定
-                if self.get_won_player() is not None:
+                winner_direction = self.get_won_player()
+                if winner_direction is not None:
                     self.is_finished = True
-                    winner = "Q-Learning" if hasattr(current_player, 'q_learning') else "Minimax"
+                    # 勝者のプレイヤーを特定
+                    winning_player = self.player1 if winner_direction == self.player1.direction else self.player2
+                    winner = "Q-Learning" if hasattr(winning_player, 'q_learning') else "Minimax"
                     print(f"Winner: {winner}")
                 else:
                     self.change_turn()
@@ -884,7 +891,8 @@ class Play:
                     time.sleep(self.delay)
             
             # エピソード終了時にQ-tableを保存
-            q_learning_player.save_q_table()
+            q_learning_first.save_q_table()
+            q_learning_second.save_q_table()
             
             # 結果の表示
             print(f"Final captured count - UP: {self.player1.capture_count}, DOWN: {self.player2.capture_count}")
