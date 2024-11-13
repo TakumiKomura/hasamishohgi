@@ -211,9 +211,17 @@ class Play:
         if mode == "2":
             self.player1 = Player(Cell.UP)
             self.player2 = Player(Cell.DOWN, is_computer=True)
+            try:
+                self.delay = float(input("Enter delay between moves (seconds): "))
+            except ValueError:
+                self.delay = 1
         elif mode == "3":
             self.player1 = Player(Cell.UP, is_computer=True)
             self.player2 = Player(Cell.DOWN, is_computer=True)
+            try:
+                self.delay = float(input("Enter delay between moves (seconds): "))
+            except ValueError:
+                self.delay = 1
         elif mode == "4":
             # Q学習モード（訓練）
             self.player1 = Player(Cell.UP)
@@ -604,8 +612,8 @@ class Play:
                         break
                 return best_move, min_eval
         
-        # 深さ2で探索を実行
-        best_move, _ = minimax(1, True, float('-inf'), float('inf'))
+        # 深さ3で探索を実行
+        best_move, _ = minimax(3, True, float('-inf'), float('inf'))
         return best_move
 
     def evaluate_move(self, old_y, old_x, new_y, new_x, current_turn):
