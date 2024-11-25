@@ -1,7 +1,3 @@
-import numpy as np
-import pickle
-import os
-
 from cell import Cell
 from board import Board
 from player import Player
@@ -15,8 +11,13 @@ class Play:
         # プレイモードの選択
         mode = input("Select mode (1: Player vs Player, 2: Player vs Computer, 3: Computer vs Computer, 4: Q-Learning Training, 5: Player vs Q-Learning AI, 6: Minimax vs Q-Learning): ")
         if mode == "2":
-            self.player1 = Player(Cell.UP)
-            self.player2 = Player(Cell.DOWN, is_computer=True)
+            turn = input("Select player's turn (1:UP), (2:DOWN): ")
+            if turn == "1":
+                self.player1 = Player(Cell.UP)
+                self.player2 = Player(Cell.DOWN, is_computer=True)
+            else:
+                self.player1 = Player(Cell.DOWN, is_computer=True)
+                self.player2 = Player(Cell.UP)
             try:
                 self.delay = float(input("Enter delay between moves (seconds): "))
             except ValueError:
@@ -88,14 +89,14 @@ class Play:
         # 駒の移動と取得処理
         self._execute_move(old_y, old_x, new_y, new_x)
 
-        # 勝利判定
-        if self._check_winner():
-            self.show_captured_count()
-            return
 
         # 次のターンの準備
         self.board.show()
+        print(f"({old_y}, {old_x}) から ({new_y}, {new_x})")
         self.show_captured_count()
+        # 勝利判定
+        if self._check_winner(): 
+            return
         self.change_turn()
 
     def _get_valid_move(self):
@@ -420,7 +421,7 @@ class Play:
                 return best_move, min_eval
         
         # 深さ3で探索を実行
-        best_move, _ = minimax(1, True, float('-inf'), float('inf'))
+        best_move, _ = minimax(3, True, float('-inf'), float('inf'))
         return best_move
 
     def evaluate_move(self, old_y, old_x, new_y, new_x, current_turn):
